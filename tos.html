@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Условия использования — GayDetector Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #7c3aed;
+    --accent2: #a855f7;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --highlight: #1e1030;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    font-weight: 300;
+    line-height: 1.8;
+    min-height: 100vh;
+  }
+
+  /* Background grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow blob */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 80px 24px 120px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 64px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--highlight);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent2);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #e2e8f0 30%, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .meta {
+    font-size: 14px;
+    color: var(--muted);
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .meta span { display: flex; align-items: center; gap: 6px; }
+
+  section {
+    margin-bottom: 48px;
+  }
+
+  .section-number {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #f1f5f9;
+  }
+
+  p {
+    color: #94a3b8;
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+
+  ul {
+    list-style: none;
+    margin: 12px 0 16px;
+  }
+
+  ul li {
+    color: #94a3b8;
+    font-size: 15px;
+    padding: 6px 0 6px 24px;
+    position: relative;
+  }
+
+  ul li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 16px;
+  }
+
+  .card.warning {
+    border-color: rgba(245,158,11,0.2);
+    background: rgba(245,158,11,0.04);
+  }
+
+  .card.warning p { color: #fbbf24; }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 48px 0;
+  }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+    gap: 16px;
+  }
+
+  footer p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  .footer-logo {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">GayDetector Bot</div>
+    <h1>Условия использования</h1>
+    <div class="meta">
+      <span>📅 Последнее обновление: апрель 2025</span>
+      <span>🌐 Версия 1.0</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-number">01 / Введение</div>
+    <h2>О боте и настоящем документе</h2>
+    <p>GayDetector Bot («Бот») — это развлекательный бот для платформы Discord, разработанный для использования внутри закрытых сообществ и серверов. Бот реализует игровую механику случайного выбора участника среди зарегистрировавшихся пользователей.</p>
+    <p>Используя Бот, добавляя его на свой сервер или взаимодействуя с ним любым способом, вы подтверждаете, что ознакомились с настоящими Условиями и соглашаетесь их соблюдать. Если вы не согласны с какими-либо положениями — пожалуйста, прекратите использование Бота.</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">02 / Развлекательный характер</div>
+    <h2>Игровой и шуточный формат</h2>
+    <p>Бот создан исключительно в развлекательных целях. Все сообщения, фразы, «результаты» выбора и звания, генерируемые Ботом, носят юмористический характер и не несут никакой дискриминационной нагрузки.</p>
+    <div class="card warning">
+      <p>⚠️ Участие в игре — полностью добровольное. Регистрируясь командой <strong>!пидордня</strong>, пользователь явно выражает согласие на участие в юмористической игре и принимает её правила, включая возможность быть выбранным «пидором дня».</p>
+    </div>
+    <p style="margin-top:16px">Администраторы серверов несут ответственность за то, чтобы использование Бота соответствовало культуре и правилам их сообщества. Мы рекомендуем явно информировать участников сервера об игровом характере Бота перед его активацией.</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">03 / Правила использования</div>
+    <h2>Допустимое использование</h2>
+    <p>Вы соглашаетесь использовать Бот только в законных целях и в соответствии с правилами платформы Discord. В частности, запрещается:</p>
+    <ul>
+      <li>Использовать Бот для целенаправленного преследования, запугивания или унижения конкретных пользователей</li>
+      <li>Использовать Бот в целях, нарушающих Условия обслуживания Discord</li>
+      <li>Пытаться взломать, изменить или нарушить работу Бота</li>
+      <li>Использовать Бот для сбора персональных данных пользователей помимо тех, что необходимы для игровой механики</li>
+      <li>Добавлять Бота на серверы без согласия их администраторов</li>
+    </ul>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">04 / Отказ от ответственности</div>
+    <h2>Ограничение ответственности</h2>
+    <p>Бот предоставляется «как есть», без каких-либо явных или подразумеваемых гарантий. Разработчики не несут ответственности за:</p>
+    <ul>
+      <li>Любой ущерб, возникший в результате использования или невозможности использования Бота</li>
+      <li>Контент, создаваемый пользователями на серверах, где используется Бот</li>
+      <li>Перебои в работе, связанные с техническими неполадками Discord или хостинг-платформы</li>
+      <li>Любые конфликты между пользователями, возникшие в связи с использованием Бота</li>
+    </ul>
+    <div class="card">
+      <p>Разработчики оставляют за собой право в любое время и без предварительного уведомления изменять, приостанавливать или прекращать работу Бота.</p>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">05 / Изменения</div>
+    <h2>Обновление условий</h2>
+    <p>Мы оставляем за собой право обновлять настоящие Условия в любое время. Актуальная версия всегда доступна по данному адресу. Продолжение использования Бота после публикации изменений означает ваше согласие с обновлёнными Условиями.</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">06 / Контакт</div>
+    <h2>Связь с разработчиками</h2>
+    <p>По вопросам, связанным с настоящими Условиями, работой Бота или для сообщения о нарушениях, вы можете связаться с нами через Discord-сервер, на котором используется Бот, или обратившись к его администраторам напрямую.</p>
+  </section>
+
+  <footer>
+    <div class="footer-logo">GayDetector Bot</div>
+    <p>© 2025 GayDetector Bot. Все права защищены.</p>
+  </footer>
+</div>
+</body>
+</html>

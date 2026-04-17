@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Политика конфиденциальности — GayDetector Bot</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Onest:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #0ea5e9;
+    --accent2: #38bdf8;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --highlight: #071e2e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Onest', sans-serif;
+    font-weight: 300;
+    line-height: 1.8;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(14,165,233,0.1) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 80px 24px 120px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 64px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 48px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--highlight);
+    border: 1px solid rgba(14,165,233,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent2);
+    border-radius: 50%;
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #e2e8f0 30%, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .meta {
+    font-size: 14px;
+    color: var(--muted);
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  section { margin-bottom: 48px; }
+
+  .section-number {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #f1f5f9;
+  }
+
+  p {
+    color: #94a3b8;
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+
+  ul {
+    list-style: none;
+    margin: 12px 0 16px;
+  }
+
+  ul li {
+    color: #94a3b8;
+    font-size: 15px;
+    padding: 6px 0 6px 24px;
+    position: relative;
+  }
+
+  ul li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: 12px 16px;
+    background: rgba(14,165,233,0.08);
+    color: var(--accent2);
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 12px 16px;
+    color: #94a3b8;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-top: 16px;
+  }
+
+  .card.success {
+    border-color: rgba(34,197,94,0.2);
+    background: rgba(34,197,94,0.04);
+  }
+
+  .card.success p { color: #4ade80; }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 48px 0;
+  }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  footer p { font-size: 13px; color: var(--muted); margin: 0; }
+
+  .footer-logo {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">GayDetector Bot</div>
+    <h1>Политика конфиденциальности</h1>
+    <div class="meta">
+      <span>📅 Последнее обновление: апрель 2025</span>
+      <span>🌐 Версия 1.0</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-number">01 / Введение</div>
+    <h2>Наш подход к данным</h2>
+    <p>GayDetector Bot («Бот») собирает минимально необходимый объём данных для обеспечения игровой механики. Мы не занимаемся монетизацией пользовательских данных, не передаём их третьим лицам и не используем в каких-либо целях, кроме функционирования Бота.</p>
+    <div class="card success">
+      <p>✓ Мы никогда не продаём ваши данные. Мы никогда не передаём их рекламодателям. Ваши данные используются исключительно для работы игровой механики.</p>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">02 / Собираемые данные</div>
+    <h2>Какие данные мы храним</h2>
+    <p>При регистрации в игре (команда <strong>!пидордня</strong>) Бот сохраняет следующие данные:</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Тип данных</th>
+          <th>Назначение</th>
+          <th>Хранение</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Discord User ID</td>
+          <td>Идентификация участника, упоминание в результатах</td>
+          <td>До удаления участника</td>
+        </tr>
+        <tr>
+          <td>Discord Guild ID</td>
+          <td>Разделение статистики между серверами</td>
+          <td>До удаления участника</td>
+        </tr>
+        <tr>
+          <td>Отображаемое имя (nickname)</td>
+          <td>Отображение в таблице статистики</td>
+          <td>До удаления участника</td>
+        </tr>
+        <tr>
+          <td>Счётчик побед</td>
+          <td>Ведение статистики игр</td>
+          <td>До сброса или удаления</td>
+        </tr>
+        <tr>
+          <td>Временные метки игр</td>
+          <td>Ограничение одной игры в 24 часа</td>
+          <td>История игр сервера</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>Бот <strong>не собирает</strong> и не хранит: содержание переписки, голосовые данные, email-адреса, IP-адреса, информацию об устройствах или любые другие персональные данные.</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">03 / Использование данных</div>
+    <h2>Как используются данные</h2>
+    <p>Собранные данные используются исключительно для:</p>
+    <ul>
+      <li>Случайного выбора участника при запуске игровой рулетки</li>
+      <li>Ведения таблицы статистики в рамках одного сервера</li>
+      <li>Предотвращения повторного запуска игры в течение 24 часов</li>
+      <li>Отображения результатов и упоминания победителя через @mention</li>
+    </ul>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">04 / Ваши права</div>
+    <h2>Управление своими данными</h2>
+    <p>Каждый пользователь имеет возможность управлять своим участием в игре:</p>
+    <ul>
+      <li><strong>Удаление данных:</strong> Администратор сервера может удалить вас из игры командой <strong>!исключить @вы</strong> — все ваши данные будут немедленно удалены из базы данных</li>
+      <li><strong>Сброс статистики:</strong> Администратор сервера может полностью обнулить все данные командой <strong>!сброспидоров</strong></li>
+      <li><strong>Добровольность:</strong> Участие в игре начинается только после явной регистрации командой <strong>!пидордня</strong></li>
+    </ul>
+    <div class="card">
+      <p>Если вы хотите удалить свои данные, но не являетесь администратором сервера — обратитесь к администратору того сервера Discord, на котором используется Бот.</p>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">05 / Хранение и безопасность</div>
+    <h2>Где и как хранятся данные</h2>
+    <p>Данные хранятся в локальной базе данных SQLite на сервере хостинг-платформы Railway. Доступ к базе данных имеет только владелец развёртывания Бота.</p>
+    <p>Мы принимаем разумные меры для защиты данных от несанкционированного доступа, однако не можем гарантировать абсолютную безопасность любой системы передачи данных через интернет.</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">06 / Дети</div>
+    <h2>Возрастные ограничения</h2>
+    <p>Бот предназначен для пользователей, соответствующих минимальным возрастным требованиям платформы Discord (13 лет, в некоторых юрисдикциях — 16 лет). Мы не собираем намеренно данные лиц, не достигших допустимого возраста. Если вам стало известно об использовании Бота несовершеннолетним — пожалуйста, сообщите администратору соответствующего сервера.</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="section-number">07 / Изменения политики</div>
+    <h2>Обновление документа</h2>
+    <p>Мы можем обновлять настоящую Политику конфиденциальности. Актуальная версия всегда доступна по данному адресу с указанием даты последнего обновления. Продолжение использования Бота после изменений означает согласие с обновлённой Политикой.</p>
+  </section>
+
+  <footer>
+    <div class="footer-logo">GayDetector Bot</div>
+    <p>© 2025 GayDetector Bot. Все права защищены.</p>
+  </footer>
+</div>
+</body>
+</html>
