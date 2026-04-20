@@ -41,7 +41,7 @@ async function initDb() {
         id SERIAL PRIMARY KEY,
         discord_guild_id TEXT UNIQUE,
         auto_channel_id TEXT,
-        auto_time TEXT DEFAULT '09:00'
+        auto_time TEXT DEFAULT '23:59'
     )`);
     console.log("База данных готова");
 }
@@ -60,7 +60,7 @@ const client = new Client({
     ],
 });
 
-// Лок для предотвращения двойного запуска рулетки
+// Лок для предотвращения двойного запуска
 const activeGames = new Set();
 
 client.once("clientReady", async (c) => {
@@ -72,6 +72,12 @@ client.once("clientReady", async (c) => {
 client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
     console.log(`[MSG] ${msg.guild?.name} | ${msg.author.username}: ${msg.content}`);
+
+    // Ответ на тег бота
+    if (msg.mentions.users.has(client.user.id) && !msg.content.startsWith("!")) {
+        msg.channel.send(game.GetMentionReply());
+        return;
+    }
 
     // Регистрация участника
     if (msg.content.match(/^!пидордня/) || msg.content.match(/^!пидорня/)) {
@@ -86,21 +92,19 @@ client.on("messageCreate", async (msg) => {
             );
             msg.channel.send(`Окей, ты в игре, ${ChatFunctions.getNickname(msg)} 🎲`);
         }
-        ChatFunctions.deleteMessage(msg, 2000);
+        ChatFunctions.deleteMessage(msg, 5000);
         return;
     }
 
-    // Запуск рулетки
+    // Запуск пробивки
     if (msg.content.match(/^!ктопидор/)) {
         ChatFunctions.deleteMessage(msg, 5000);
 
-        // Защита от двойного запуска
         if (activeGames.has(msg.guild.id)) {
-            msg.channel.send("Рулетка уже крутится, подожди! 🎰");
+            msg.channel.send("Пробивка уже идёт, подожди! 🔍");
             return;
         }
 
-        // Сначала проверяем есть ли участники
         const participant = await participantsRepository.GetRandomParticipant(msg.guild.id);
         if (!participant) {
             msg.channel.send("Нет участников! Сначала зарегистрируйтесь командой !пидордня 🎲");
@@ -116,7 +120,7 @@ client.on("messageCreate", async (msg) => {
 
         activeGames.add(msg.guild.id);
         try {
-            await game.Tease(msg.channel);
+            await game.Tease(msg.channel, false);
             const winMsg = await game.Run(msg.guild.id);
             msg.channel.send(winMsg);
         } catch (err) {
@@ -131,132 +135,115 @@ client.on("messageCreate", async (msg) => {
     if (msg.content.match(/^!топпидоров/)) {
         const message = await game.GetStats(msg.guild.id);
         msg.channel.send(message);
-        ChatFunctions.deleteMessage(msg, 1000);
+        ChatFunctions.deleteMessage(msg, 5000);
         return;
     }
 
-    // Просмотр архива — !пидоргода2024, !пидоргода2025 и тд
+    // Архив пидора конкретного года — !пидоргода2024 и тд
     const archiveMatch = msg.content.match(/^!пидоргода(\d{4})$/);
     if (archiveMatch) {
         ChatFunctions.deleteMessage(msg, 5000);
         const year = parseInt(archiveMatch[1]);
-
-        const archiveTeasePhrases = [
+        const archivePhrases = [
             [`🗂️ Поднимаю архивы ${year} года...`, `Пыль, паутина, запах старых грехов...`, `Нашёл. Вот он, позор того года:`],
             [`📼 Перематываю плёнку в ${year} год...`, `Да, были времена. Кто-то очень старался.`, `Вот кто прославился навсегда:`],
-            [`🔍 Ищу в базе данных пидора ${year} года...`, `Запись найдена. Не удалена. Никогда не будет удалена.`, `Итак, легенда ${year} года:`],
+            [`🔍 Пробивка по архиву ${year} года...`, `Запись найдена. Не удалена. Никогда не будет удалена.`, `Итак, легенда ${year} года:`],
         ];
-        const archiveTeaseSet = archiveTeasePhrases[Math.floor(Math.random() * archiveTeasePhrases.length)];
-        for (const p of archiveTeaseSet) {
+        const set = archivePhrases[Math.floor(Math.random() * archivePhrases.length)];
+        for (const p of set) {
             await new Promise(r => setTimeout(r, 2000 + Math.random() * 2000));
             msg.channel.send(p);
         }
         await new Promise(r => setTimeout(r, 2000));
-
         const winner = await game.GetYearWinnerFromArchive(msg.guild.id, year);
         if (!winner) {
             msg.channel.send(`📭 Записей о пидоре ${year} года нет. Либо не играли, либо история не сохранилась.`);
         } else {
-            msg.channel.send(`🏆 **Пидор ${year} года** — <@${winner.discord_user_id}> с результатом **${winner.score}** раз. Имя вписано в историю навсегда.`);
+            msg.channel.send(`🏆 **Пидор ${year} года** — <@${winner.discord_user_id}> с результатом **${winner.score}** пробивок. Имя вписано в историю навсегда.`);
         }
         return;
     }
 
-    // Пидор года
+    // Пидор года (ручной)
     if (msg.content.match(/^!пидоргода$/)) {
-        ChatFunctions.deleteMessage(msg, 1000);
-
+        ChatFunctions.deleteMessage(msg, 5000);
         const now = new Date();
         const currentYear = now.getFullYear();
         const month = now.getMonth() + 1;
         const day = now.getDate();
-        const isTimeToReveal = month === 12 && day >= 31;
 
-        // Проверяем — объявляли ли уже пидора этого года
         const alreadyDone = await game.IsYearWinnerDeclared(msg.guild.id, currentYear);
         if (alreadyDone) {
-            msg.channel.send(`✅ Пидор **${currentYear}** года уже объявлен. Следующая церемония — 31 декабря ${currentYear + 1}. Иди играй.`);
+            msg.channel.send(`✅ Пидор **${currentYear}** года уже объявлен. Следующая пробивка — 31 декабря ${currentYear + 1}. Иди играй.`);
             return;
         }
 
-        if (!isTimeToReveal) {
+        if (!(month === 12 && day >= 31)) {
             const targetDate = new Date(currentYear, 11, 31);
             const daysLeft = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
             const earlyPhrases = [
-                `🙄 Куда торопишься? До итогов **${currentYear}** года ещё **${daysLeft}** дней. Иди играй дальше.`,
-                `📅 Рано, дорогой. Пидор года объявляется 31 декабря. Осталось **${daysLeft}** дней усердной работы.`,
+                `🙄 Куда торопишься? До годовой пробивки **${currentYear}** ещё **${daysLeft}** дней. Иди играй дальше.`,
+                `📅 Рано, дорогой. Годовая пробивка запускается 31 декабря. Осталось **${daysLeft}** дней.`,
                 `😂 Год ещё не кончился! Осталось **${daysLeft}** дней. Может ещё кто-то тебя обгонит.`,
-                `🏆 Корона пидора **${currentYear}** года вручается 31 декабря. До церемонии **${daysLeft}** дней. Не спеши.`,
+                `🏆 Корона пидора **${currentYear}** года вручается 31 декабря. До пробивки **${daysLeft}** дней. Не спеши.`,
                 `⏳ **${daysLeft}** дней до итогов. Расслабься. Никуда твой титул не денется.`,
-                `📊 База данных заблокирована до 31.12.${currentYear}. Осталось **${daysLeft}** дней позора. Продолжай в том же духе.`,
+                `📊 База заблокирована до 31.12.${currentYear}. Осталось **${daysLeft}** дней позора. Продолжай в том же духе.`,
             ];
             msg.channel.send(earlyPhrases[Math.floor(Math.random() * earlyPhrases.length)]);
             return;
         }
 
         try {
-            await game.TeaseYear(msg.channel);
+            await game.TeaseYear(msg.channel, false);
             const result = await game.GetYearWinner(msg.guild.id);
             await msg.channel.send(result.announcement);
             await new Promise(r => setTimeout(r, 2000));
             await msg.channel.send(result.congrats);
-            // Сохраняем победителя в архив и сбрасываем статистику
             await game.SaveYearWinnerAndReset(msg.guild.id, result.userId, result.name, result.score, currentYear);
             await new Promise(r => setTimeout(r, 3000));
-            msg.channel.send(`🗓️ Статистика обнулена. Новый год — новая борьба. Следующая церемония — 31 декабря ${currentYear + 1}.`);
+            msg.channel.send(`🗓️ Статистика обнулена. Новый год — новая пробивка. Следующая церемония — 31 декабря ${currentYear + 1}.`);
         } catch (err) {
             msg.channel.send(err);
         }
         return;
     }
 
-    // Сброс статистики (только для администраторов)
+    // Сброс статистики
     if (msg.content.match(/^!сброспидоров/)) {
         if (!msg.member.permissions.has("Administrator")) {
             msg.channel.send("Только администратор может сбрасывать статистику! 🚫");
             ChatFunctions.deleteMessage(msg, 2000);
             return;
         }
-
-        // Двойное подтверждение — ждём "да" в течение 15 секунд
-        msg.channel.send("⚠️ Ты уверен? Это сотрёт **всю** статистику пидоров! Напиши `!подтвердить` в течение 15 секунд.");
+        msg.channel.send("⚠️ Ты уверен? Это сотрёт **всю** статистику! Напиши `!подтвердить` в течение 15 секунд.");
         ChatFunctions.deleteMessage(msg, 1000);
-
         try {
-            const filter = (m) =>
-                m.author.id === msg.author.id && m.content === "!подтвердить";
-            const collected = await msg.channel.awaitMessages({
-                filter,
-                max: 1,
-                time: 15000,
-                errors: ["time"],
-            });
+            const filter = (m) => m.author.id === msg.author.id && m.content === "!подтвердить";
+            const collected = await msg.channel.awaitMessages({ filter, max: 1, time: 15000, errors: ["time"] });
             ChatFunctions.deleteMessage(collected.first(), 500);
-            const result = await game.ResetScores(msg.guild.id);
-            msg.channel.send(result);
+            await game.ResetScores(msg.guild.id);
+            msg.channel.send("✅ Статистика обнулена! Новая пробивка — новые пидоры 🗑️");
         } catch {
             msg.channel.send("Сброс отменён — время вышло ⏱️");
         }
         return;
     }
 
-    // Исключить участника (только для администраторов)
+    // Исключить участника
     if (msg.content.match(/^!исключить/)) {
         if (!msg.member.permissions.has("Administrator")) {
             msg.channel.send("Ты кто такой? Иди отсюда! 🚫");
             ChatFunctions.deleteMessage(msg, 3000);
             return;
         }
-
         const mentioned = msg.mentions.users.first();
         if (!mentioned) {
             msg.channel.send("Укажи пользователя через @mention");
             ChatFunctions.deleteMessage(msg, 3000);
             return;
         }
-
         await participantsRepository.RemoveParticipant(mentioned.id, msg.guild.id);
-        msg.channel.send(`Пользователь ${mentioned.username} исключён из игры`);
+        msg.channel.send(`Пользователь ${mentioned.username} исключён из пробивки`);
         ChatFunctions.deleteMessage(msg, 3000);
         return;
     }
@@ -269,25 +256,7 @@ client.on("messageCreate", async (msg) => {
             return;
         }
         await game.SetAutoChannel(msg.guild.id, msg.channel.id);
-        msg.channel.send(`✅ Авторулетка будет запускаться в этом канале каждый день. Используй \`!setвремя ЧЧ:ММ\` чтобы указать время (UTC).`);
-        return;
-    }
-
-    // Изменить время авторулетки
-    if (msg.content.match(/^!setвремя/)) {
-        ChatFunctions.deleteMessage(msg, 5000);
-        if (!msg.member.permissions.has("Administrator")) {
-            msg.channel.send("Только администратор может настраивать время! 🚫");
-            return;
-        }
-        const timeMatch = msg.content.match(/^!setвремя\s+(\d{2}:\d{2})$/);
-        if (!timeMatch) {
-            msg.channel.send("Неверный формат. Используй: `!setвремя 09:00` (время в UTC)");
-            return;
-        }
-        const time = timeMatch[1];
-        await game.SetAutoTime(msg.guild.id, time);
-        msg.channel.send(`✅ Время авторулетки установлено на **${time} UTC**. Это ${time} по UTC — не забудь пересчитать под свой часовой пояс.`);
+        msg.channel.send(`✅ Автопробивка будет запускаться в этом канале каждый день в **23:59 UTC** если никто не запустил вручную.`);
         return;
     }
 
@@ -299,90 +268,109 @@ client.on("messageCreate", async (msg) => {
             return;
         }
         await game.RemoveAutoChannel(msg.guild.id);
-        msg.channel.send("✅ Авторулетка отключена. Используй `!setканал` чтобы включить снова.");
+        msg.channel.send("✅ Автопробивка отключена. Используй `!setканал` чтобы включить снова.");
         return;
     }
 
-    // Показать текущие настройки авторулетки
-    if (msg.content.match(/^!autoинфо/)) {
-        ChatFunctions.deleteMessage(msg, 5000);
-        const settings = await game.GetAutoSettings(msg.guild.id);
-        if (!settings || !settings.auto_channel_id) {
-            msg.channel.send("⚙️ Авторулетка не настроена. Используй `!setканал` в нужном канале.");
-        } else {
-            msg.channel.send(`⚙️ Авторулетка: канал <#${settings.auto_channel_id}>, время **${settings.auto_time} UTC**`);
-        }
-        return;
-    }
-
-    // Сброс и повторная настройка авторулетки (фикс если настройки слетели)
+    // Сброс и повторная настройка
     if (msg.content.match(/^!resetканал/)) {
         ChatFunctions.deleteMessage(msg, 5000);
         if (!msg.member.permissions.has("Administrator")) {
             msg.channel.send("Только администратор! 🚫");
             return;
         }
-        // Удаляем старую запись и создаём новую с каналом и временем по умолчанию
         await game.ResetAutoSettings(msg.guild.id, msg.channel.id);
-        msg.channel.send(`✅ Настройки авторулетки сброшены. Канал установлен на этот. Время: **09:00 UTC**. Используй \`!setвремя ЧЧ:ММ\` чтобы сменить время.`);
+        msg.channel.send(`✅ Настройки автопробивки сброшены. Канал установлен на этот. Запуск — каждый день в **23:59 UTC**.`);
+        return;
+    }
+
+    // Инфо об авторулетке
+    if (msg.content.match(/^!autoинфо/)) {
+        ChatFunctions.deleteMessage(msg, 5000);
+        const settings = await game.GetAutoSettings(msg.guild.id);
+        if (!settings || !settings.auto_channel_id) {
+            msg.channel.send("⚙️ Автопробивка не настроена. Используй `!setканал` в нужном канале.");
+        } else {
+            msg.channel.send(`⚙️ Автопробивка: канал <#${settings.auto_channel_id}>, запуск в **23:59 UTC** если никто не сыграл вручную.`);
+        }
         return;
     }
 
     // Помощь
     if (msg.content.match(/^!пидорхелп/)) {
         const help = [
-            "**🎲 Команды бота:**",
+            "**🔍 Команды бота:**",
             "`!пидордня` — записаться в участники",
-            "`!ктопидор` — запустить рулетку (1 раз в сутки)",
+            "`!ктопидор` — запустить пробивку (1 раз в сутки)",
             "`!топпидоров` — топ-10 за всё время",
             "`!пидоргода` — объявить пидора года (31 декабря)",
             "`!пидоргода2026` — архив пидора конкретного года",
-            "`!сброспидоров` — обнулить всю статистику (только для админов)",
+            "`!сброспидоров` — обнулить статистику (только для админов)",
             "`!исключить @user` — исключить участника (только для админов)",
-            "`!setканал` — установить канал для авторулетки (только для админов)",
-            "`!setвремя 09:00` — установить время авторулетки в UTC (только для админов)",
-            "`!delканал` — отключить авторулетку (только для админов)",
-            "`!autoинфо` — показать настройки авторулетки",
+            "`!setканал` — установить канал для автопробивки (только для админов)",
+            "`!delканал` — отключить автопробивку (только для админов)",
+            "`!autoинфо` — показать настройки автопробивки",
         ].join("\n");
         msg.channel.send(help);
-        ChatFunctions.deleteMessage(msg, 1000);
+        ChatFunctions.deleteMessage(msg, 5000);
         return;
     }
 });
 
-// Авторулетка — запускается каждую минуту и проверяет время
+// CRON — каждую минуту проверяем время
 setInterval(async () => {
     const now = new Date();
     const currentTime = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
-    console.log(`[CRON] Проверка авторулетки: ${currentTime} UTC`);
+    const currentDay = now.getUTCDate();
+    const currentMonth = now.getUTCMonth() + 1;
+    const currentYear = now.getUTCFullYear();
 
+    // Авто пидор года — 31 декабря в 23:59 UTC
+    if (currentTime === "23:59" && currentMonth === 12 && currentDay === 31) {
+        console.log("[CRON] Запускаю автопидора года");
+        const guilds = await game.GetAllAutoSettings();
+        for (const settings of guilds) {
+            if (!settings.auto_channel_id) continue;
+            const channel = client.channels.cache.get(settings.auto_channel_id);
+            if (!channel) continue;
+            const guild_id = settings.discord_guild_id;
+            const alreadyDone = await game.IsYearWinnerDeclared(guild_id, currentYear);
+            if (alreadyDone) continue;
+            try {
+                await game.TeaseYear(channel, true);
+                const result = await game.GetYearWinner(guild_id);
+                await channel.send(result.announcement);
+                await new Promise(r => setTimeout(r, 2000));
+                await channel.send(result.congrats);
+                await game.SaveYearWinnerAndReset(guild_id, result.userId, result.name, result.score, currentYear);
+                await new Promise(r => setTimeout(r, 3000));
+                channel.send(`🗓️ Статистика обнулена. Новый год — новая пробивка. Следующая церемония — 31 декабря ${currentYear + 1}.`);
+            } catch (err) {
+                console.error(`[CRON] Ошибка автопидора года: ${err}`);
+            }
+        }
+        return;
+    }
+
+    // Авто пробивка — 23:59 UTC каждый день
+    if (currentTime !== "23:59") return;
+
+    console.log("[CRON] Проверка автопробивки 23:59 UTC");
     const guilds = await game.GetAllAutoSettings();
-    const allSettings = await game.GetAllAutoSettingsDebug();
-    console.log(`[CRON] Серверов с авторулеткой: ${guilds.length}, всего записей в guild_settings: ${allSettings.length}`);
-    allSettings.forEach(s => console.log(`[CRON DEBUG] guild=${s.discord_guild_id} channel=${s.auto_channel_id} time=${s.auto_time}`));
+    console.log(`[CRON] Серверов с автопробивкой: ${guilds.length}`);
 
     for (const settings of guilds) {
-        console.log(`[CRON] Сервер ${settings.discord_guild_id}: время=${settings.auto_time}, нужно=${currentTime}`);
-        if (settings.auto_time !== currentTime) continue;
         if (!settings.auto_channel_id) continue;
-
         const channel = client.channels.cache.get(settings.auto_channel_id);
-        if (!channel) {
-            console.log(`[CRON] Канал ${settings.auto_channel_id} не найден в кеше`);
-            continue;
-        }
-
+        if (!channel) continue;
         const guild_id = settings.discord_guild_id;
-        console.log(`[CRON] Запускаю авторулетку на сервере ${guild_id}`);
 
-        // Проверяем участников
         const participant = await participantsRepository.GetRandomParticipant(guild_id);
         if (!participant) {
             console.log(`[CRON] Нет участников на сервере ${guild_id}`);
             continue;
         }
 
-        // Проверяем не играли ли уже сегодня
         try {
             await game.CanStartGame(guild_id);
         } catch {
@@ -390,21 +378,20 @@ setInterval(async () => {
             continue;
         }
 
-        // Запускаем рулетку
         if (activeGames.has(guild_id)) continue;
         activeGames.add(guild_id);
         try {
-            await game.Tease(channel);
+            await game.Tease(channel, true);
             const winMsg = await game.Run(guild_id);
             channel.send(winMsg);
-            console.log(`[CRON] Авторулетка успешно запущена на сервере ${guild_id}`);
+            console.log(`[CRON] Автопробивка запущена на сервере ${guild_id}`);
         } catch (err) {
-            console.error(`[CRON] Ошибка авторулетки на сервере ${guild_id}:`, err);
+            console.error(`[CRON] Ошибка автопробивки: ${err}`);
         } finally {
             activeGames.delete(guild_id);
         }
     }
-}, 60000); // проверяем каждую минуту
+}, 60000);
 
 client.login(process.env.BOT_TOKEN).then(() => {
     console.log("Бот успешно вошёл в систему!");
