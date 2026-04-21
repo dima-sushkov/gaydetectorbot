@@ -8,19 +8,19 @@ const pool = new Pool({
 });
 
 class DbAdapter {
-    async get(sql, placeholders) {
+    async get(sql, placeholders = {}) {
         const { text, values } = this._convert(sql, placeholders);
         const result = await pool.query(text, values);
         return result.rows[0] || undefined;
     }
 
-    async all(sql, placeholders) {
+    async all(sql, placeholders = {}) {
         const { text, values } = this._convert(sql, placeholders);
         const result = await pool.query(text, values);
         return result.rows;
     }
 
-    async run(sql, placeholders) {
+    async run(sql, placeholders = {}) {
         const { text, values } = this._convert(sql, placeholders);
         await pool.query(text, values);
     }
