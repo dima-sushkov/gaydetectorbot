@@ -4,14 +4,14 @@
   "description": "Бот пидора дня для Discord",
   "main": "run.js",
   "scripts": {
-    "start": "node run.js",
-    "install-db": "node install.js"
+    "start": "node run.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "discord.js": "^14.0.0",
     "dotenv": "^16.0.0",
-    "pg": "^8.11.0"
+    "sqlite3": "^5.1.0",
+    "openai": "^4.0.0"
   }
 }

@@ -1,50 +1,28 @@
 "use strict";
 require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
-const { Pool } = require("pg");
+const sqlite3 = require("sqlite3");
+const path = require("path");
+const { OpenAI } = require("openai");
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Системный промт — личность бота
+const SYSTEM_PROMPT = `Ты — GayDetector 2.0, дерзкий Discord бот для группы близких друзей.
+Ты общаешься грубовато и по-свойски, как в тесной компании где все друг друга знают.
+Можешь материться и использовать слово "пидор" — это внутри-шуточный термин комьюнити, никого не обижает.
+Ты знаешь свои команды: !пидордня (регистрация), !ктопидор (пробивка), !топпидоров (статистика), !пидоргода (итоги года).
+Отвечай коротко, дерзко, с юмором. Не будь вежливым корпоративным ботом.
+Если спрашивают не по теме — можешь ответить саркастично но помоги.
+Максимум 2-3 предложения в ответе.`;
+
+// История диалогов по серверам (хранится в памяти)
+const conversationHistory = new Map();
 const ChatFunctions = require("./src/ChatFunctions");
 const GamesRepository = require("./src/Repositories/GamesRepository");
 const ParticipantRepository = require("./src/Repositories/ParticipantRepository");
 const Game = require("./src/Game");
 const DbAdapter = require("./src/DbAdapter");
-
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
-
-async function initDb() {
-    await pool.query(`CREATE TABLE IF NOT EXISTS participants (
-        id SERIAL PRIMARY KEY,
-        discord_guild_id TEXT,
-        discord_user_id TEXT,
-        discord_user_name TEXT,
-        score INTEGER DEFAULT 0,
-        excluded INTEGER DEFAULT 0
-    )`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS games (
-        id SERIAL PRIMARY KEY,
-        discord_guild_id TEXT,
-        winner_participant_id INTEGER,
-        datetime INTEGER
-    )`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS year_winners (
-        id SERIAL PRIMARY KEY,
-        discord_guild_id TEXT,
-        discord_user_id TEXT,
-        discord_user_name TEXT,
-        year INTEGER,
-        score INTEGER,
-        datetime INTEGER
-    )`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS guild_settings (
-        id SERIAL PRIMARY KEY,
-        discord_guild_id TEXT UNIQUE,
-        auto_channel_id TEXT,
-        auto_time TEXT DEFAULT '23:59'
-    )`);
-    console.log("База данных готова");
-}
 
 const dbAdapter = new DbAdapter();
 const gamesRepository = new GamesRepository(dbAdapter);
@@ -63,8 +41,7 @@ const client = new Client({
 // Лок для предотвращения двойного запуска
 const activeGames = new Set();
 
-client.once("clientReady", async (c) => {
-    await initDb();
+client.once("clientReady", (c) => {
     console.log(`Бот запущен как ${c.user.tag}`);
     console.log(`Подключён к ${c.guilds.cache.size} серверам`);
 });
@@ -73,9 +50,47 @@ client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
     console.log(`[MSG] ${msg.guild?.name} | ${msg.author.username}: ${msg.content}`);
 
-    // Ответ на тег бота
+    // Ответ на тег бота через OpenAI
     if (msg.mentions.users.has(client.user.id) && !msg.content.startsWith("!")) {
-        msg.channel.send(game.GetMentionReply());
+        if (!process.env.OPENAI_API_KEY) {
+            msg.channel.send(game.GetMentionReply());
+            return;
+        }
+
+        const userText = msg.content.replace(/<@!?\d+>/g, "").trim();
+        if (!userText) {
+            msg.channel.send(game.GetMentionReply());
+            return;
+        }
+
+        const historyKey = `${msg.guild.id}_${msg.author.id}`;
+        if (!conversationHistory.has(historyKey)) {
+            conversationHistory.set(historyKey, []);
+        }
+        const history = conversationHistory.get(historyKey);
+        history.push({ role: "user", content: `${msg.member?.displayName || msg.author.username}: ${userText}` });
+
+        // Держим только последние 10 сообщений
+        if (history.length > 10) history.splice(0, history.length - 10);
+
+        try {
+            await msg.channel.sendTyping();
+            const response = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    ...history
+                ],
+                max_tokens: 150,
+                temperature: 0.9,
+            });
+            const reply = response.choices[0].message.content;
+            history.push({ role: "assistant", content: reply });
+            msg.channel.send(reply);
+        } catch (err) {
+            console.error("[OpenAI]", err.message);
+            msg.channel.send(game.GetMentionReply());
+        }
         return;
     }
 
