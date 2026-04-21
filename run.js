@@ -75,7 +75,7 @@ client.on("messageCreate", async (msg) => {
     if (msg.author.bot) return;
     console.log(`[MSG] ${msg.guild?.name} | ${msg.author.username}: ${msg.content}`);
 
-    // Ответ на тег бота через OpenAI
+    // Ответ на тег бота через OpenAI с function calling
     if (msg.mentions.users.has(client.user.id) && !msg.content.startsWith("!")) {
         if (!process.env.OPENAI_API_KEY) {
             msg.channel.send(game.GetMentionReply());
@@ -89,29 +89,110 @@ client.on("messageCreate", async (msg) => {
         }
 
         const historyKey = `${msg.guild.id}_${msg.author.id}`;
-        if (!conversationHistory.has(historyKey)) {
-            conversationHistory.set(historyKey, []);
-        }
+        if (!conversationHistory.has(historyKey)) conversationHistory.set(historyKey, []);
         const history = conversationHistory.get(historyKey);
         history.push({ role: "user", content: `${msg.member?.displayName || msg.author.username}: ${userText}` });
-
-        // Держим только последние 10 сообщений
         if (history.length > 10) history.splice(0, history.length - 10);
 
+        // Функции которые AI может вызвать
+        const tools = [
+            {
+                type: "function",
+                function: {
+                    name: "run_probivka",
+                    description: "Запустить пробивку на пидора дня. Вызывай если пользователь просит запустить пробивку, узнать кто пидор, крутануть, запустить игру.",
+                    parameters: { type: "object", properties: {} }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "show_stats",
+                    description: "Показать статистику топ пидоров. Вызывай если пользователь просит показать статистику, топ, рейтинг.",
+                    parameters: { type: "object", properties: {} }
+                }
+            },
+            {
+                type: "function",
+                function: {
+                    name: "register_player",
+                    description: "Зарегистрировать пользователя в игре. Вызывай если пользователь хочет вступить, зарегистрироваться, участвовать в игре.",
+                    parameters: { type: "object", properties: {} }
+                }
+            }
+        ];
+
         try {
+            // Пауза перед ответом — как живой человек
+            await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
             await msg.channel.sendTyping();
+            // Ещё немного "печатает"
+            await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
             const response = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
-                    ...history
-                ],
-                max_tokens: 150,
+                messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
+                tools,
+                tool_choice: "auto",
+                max_tokens: 200,
                 temperature: 0.9,
             });
-            const reply = response.choices[0].message.content;
-            history.push({ role: "assistant", content: reply });
-            msg.channel.send(reply);
+
+            const message = response.choices[0].message;
+
+            // AI хочет вызвать функцию
+            if (message.tool_calls && message.tool_calls.length > 0) {
+                const toolCall = message.tool_calls[0];
+                const fnName = toolCall.function.name;
+
+                if (fnName === "run_probivka") {
+                    // Проверяем участников
+                    const participant = await participantsRepository.GetRandomParticipant(msg.guild.id);
+                    if (!participant) {
+                        msg.channel.send("Хочешь пробивку? Сначала зарегистрируйся — !пидордня 🎲");
+                        return;
+                    }
+                    try {
+                        await game.CanStartGame(msg.guild.id);
+                    } catch (alreadyWinner) {
+                        msg.channel.send(`Уже крутили сегодня — пидор **${alreadyWinner}**. Завтра ещё раз 😏`);
+                        return;
+                    }
+                    if (activeGames.has(msg.guild.id)) {
+                        msg.channel.send("Пробивка уже идёт, подожди!");
+                        return;
+                    }
+                    activeGames.add(msg.guild.id);
+                    try {
+                        await game.Tease(msg.channel, false);
+                        const winMsg = await game.Run(msg.guild.id);
+                        msg.channel.send(winMsg);
+                    } catch (err) {
+                        msg.channel.send(String(err));
+                    } finally {
+                        activeGames.delete(msg.guild.id);
+                    }
+
+                } else if (fnName === "show_stats") {
+                    const statsMsg = await game.GetStats(msg.guild.id);
+                    msg.channel.send(statsMsg);
+
+                } else if (fnName === "register_player") {
+                    const isExists = await participantsRepository.IsParticipantExists(msg.author.id, msg.guild.id);
+                    if (isExists) {
+                        msg.channel.send("Ты уже в игре, дурачок 🙃");
+                    } else {
+                        await participantsRepository.AddParticipant(msg.author.id, msg.guild.id, ChatFunctions.getNickname(msg));
+                        msg.channel.send(`Окей, зарегистрировал тебя, ${ChatFunctions.getNickname(msg)} 🎲`);
+                    }
+                }
+
+            } else {
+                // Обычный текстовый ответ
+                const reply = message.content;
+                history.push({ role: "assistant", content: reply });
+                msg.channel.send(reply);
+            }
+
         } catch (err) {
             console.error("[OpenAI]", err.message);
             msg.channel.send(game.GetMentionReply());
