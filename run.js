@@ -29,7 +29,10 @@ async function initDb() {
     console.log("База данных готова");
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: "https://api.groq.com/openai/v1"
+});
 
 // Системный промт — личность бота
 const SYSTEM_PROMPT = `Ты — GayDetector 2.0, дерзкий Discord бот для группы близких друзей.
@@ -77,7 +80,7 @@ client.on("messageCreate", async (msg) => {
 
     // Ответ на тег бота через OpenAI с function calling
     if (msg.mentions.users.has(client.user.id) && !msg.content.startsWith("!")) {
-        if (!process.env.OPENAI_API_KEY) {
+        if (!process.env.GROQ_API_KEY) {
             await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
             return;
         }
@@ -129,7 +132,7 @@ client.on("messageCreate", async (msg) => {
             // Ещё немного "печатает"
             await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
             const response = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: "llama-3.3-70b-versatile",
                 messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
                 tools,
                 tool_choice: "auto",
@@ -528,9 +531,9 @@ setInterval(async () => {
                 channel.send("🎬 **ИТОГИ НЕДЕЛИ — Пидоры недели выпуск:**");
                 await new Promise(r => setTimeout(r, 1000));
 
-                if (process.env.OPENAI_API_KEY) {
+                if (process.env.GROQ_API_KEY) {
                     const response = await openai.chat.completions.create({
-                        model: "gpt-4o-mini",
+                        model: "llama-3.3-70b-versatile",
                         messages: [{ role: "user", content: weeklyPrompt }],
                         max_tokens: 300,
                         temperature: 1.0,
