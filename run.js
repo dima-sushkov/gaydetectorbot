@@ -78,13 +78,13 @@ client.on("messageCreate", async (msg) => {
     // Ответ на тег бота через OpenAI с function calling
     if (msg.mentions.users.has(client.user.id) && !msg.content.startsWith("!")) {
         if (!process.env.OPENAI_API_KEY) {
-            msg.channel.send(game.GetMentionReply());
+            await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
             return;
         }
 
         const userText = msg.content.replace(/<@!?\d+>/g, "").trim();
         if (!userText) {
-            msg.channel.send(game.GetMentionReply());
+            await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
             return;
         }
 
@@ -148,41 +148,41 @@ client.on("messageCreate", async (msg) => {
                     // Проверяем участников
                     const participant = await participantsRepository.GetRandomParticipant(msg.guild.id);
                     if (!participant) {
-                        msg.channel.send("Хочешь пробивку? Сначала зарегистрируйся — !пидордня 🎲");
+                        await ChatFunctions.typingAndSend(msg.channel, "Хочешь пробивку? Сначала зарегистрируйся — !пидордня 🎲");
                         return;
                     }
                     try {
                         await game.CanStartGame(msg.guild.id);
                     } catch (alreadyWinner) {
-                        msg.channel.send(`Уже крутили сегодня — пидор **${alreadyWinner}**. Завтра ещё раз 😏`);
+                        await ChatFunctions.typingAndSend(msg.channel, `Уже крутили сегодня — пидор **${alreadyWinner}**. Завтра ещё раз 😏`);
                         return;
                     }
                     if (activeGames.has(msg.guild.id)) {
-                        msg.channel.send("Пробивка уже идёт, подожди!");
+                        await ChatFunctions.typingAndSend(msg.channel, "Пробивка уже идёт, подожди!");
                         return;
                     }
                     activeGames.add(msg.guild.id);
                     try {
                         await game.Tease(msg.channel, false);
                         const winMsg = await game.Run(msg.guild.id);
-                        msg.channel.send(winMsg);
+                        await ChatFunctions.typingAndSend(msg.channel, winMsg, 500);
                     } catch (err) {
-                        msg.channel.send(String(err));
+                        await ChatFunctions.typingAndSend(msg.channel, String(err));
                     } finally {
                         activeGames.delete(msg.guild.id);
                     }
 
                 } else if (fnName === "show_stats") {
                     const statsMsg = await game.GetStats(msg.guild.id);
-                    msg.channel.send(statsMsg);
+                    await ChatFunctions.typingAndSend(msg.channel, statsMsg);
 
                 } else if (fnName === "register_player") {
                     const isExists = await participantsRepository.IsParticipantExists(msg.author.id, msg.guild.id);
                     if (isExists) {
-                        msg.channel.send("Ты уже в игре, дурачок 🙃");
+                        await ChatFunctions.typingAndSend(msg.channel, "Ты уже в игре, дурачок 🙃");
                     } else {
                         await participantsRepository.AddParticipant(msg.author.id, msg.guild.id, ChatFunctions.getNickname(msg));
-                        msg.channel.send(`Окей, зарегистрировал тебя, ${ChatFunctions.getNickname(msg)} 🎲`);
+                        await ChatFunctions.typingAndSend(msg.channel, `Окей, зарегистрировал тебя, ${ChatFunctions.getNickname(msg)} 🎲`);
                     }
                 }
 
@@ -190,12 +190,12 @@ client.on("messageCreate", async (msg) => {
                 // Обычный текстовый ответ
                 const reply = message.content;
                 history.push({ role: "assistant", content: reply });
-                msg.channel.send(reply);
+                await ChatFunctions.typingAndSend(msg.channel, reply, 300);
             }
 
         } catch (err) {
             console.error("[OpenAI]", err.message);
-            msg.channel.send(game.GetMentionReply());
+            await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
         }
         return;
     }
@@ -204,14 +204,14 @@ client.on("messageCreate", async (msg) => {
     if (msg.content.match(/^!пидордня/) || msg.content.match(/^!пидорня/)) {
         const isExists = await participantsRepository.IsParticipantExists(msg.author.id, msg.guild.id);
         if (isExists) {
-            msg.channel.send("Ты уже участвуешь в игре, дурачок 🙃");
+            await ChatFunctions.typingAndSend(msg.channel, "Ты уже участвуешь в игре, дурачок 🙃");
         } else {
             await participantsRepository.AddParticipant(
                 msg.author.id,
                 msg.guild.id,
                 ChatFunctions.getNickname(msg)
             );
-            msg.channel.send(`Окей, ты в игре, ${ChatFunctions.getNickname(msg)} 🎲`);
+            await ChatFunctions.typingAndSend(msg.channel, `Окей, ты в игре, ${ChatFunctions.getNickname(msg)} 🎲`);
         }
         ChatFunctions.deleteMessage(msg, 5000);
         return;
@@ -222,20 +222,20 @@ client.on("messageCreate", async (msg) => {
         ChatFunctions.deleteMessage(msg, 5000);
 
         if (activeGames.has(msg.guild.id)) {
-            msg.channel.send("Пробивка уже идёт, подожди! 🔍");
+            await ChatFunctions.typingAndSend(msg.channel, "Пробивка уже идёт, подожди! 🔍");
             return;
         }
 
         const participant = await participantsRepository.GetRandomParticipant(msg.guild.id);
         if (!participant) {
-            msg.channel.send("Нет участников! Сначала зарегистрируйтесь командой !пидордня 🎲");
+            await ChatFunctions.typingAndSend(msg.channel, "Нет участников! Сначала зарегистрируйтесь командой !пидордня 🎲");
             return;
         }
 
         try {
             await game.CanStartGame(msg.guild.id);
         } catch (alreadyWinner) {
-            msg.channel.send(`А пидор сегодня уже был — **${alreadyWinner}** 😏`);
+            await ChatFunctions.typingAndSend(msg.channel, `А пидор сегодня уже был — **${alreadyWinner}** 😏`);
             return;
         }
 
@@ -243,7 +243,7 @@ client.on("messageCreate", async (msg) => {
         try {
             await game.Tease(msg.channel, false);
             const winMsg = await game.Run(msg.guild.id);
-            msg.channel.send(winMsg);
+            await ChatFunctions.typingAndSend(msg.channel, winMsg, 500);
             // Проверяем стрик
             await new Promise(r => setTimeout(r, 2000));
             await handleStreak(msg.channel, msg.guild.id, msg.guild);
@@ -258,7 +258,7 @@ client.on("messageCreate", async (msg) => {
     // Статистика
     if (msg.content.match(/^!топпидоров/)) {
         const message = await game.GetStats(msg.guild.id);
-        msg.channel.send(message);
+        await ChatFunctions.typingAndSend(msg.channel, message);
         ChatFunctions.deleteMessage(msg, 5000);
         return;
     }
@@ -281,9 +281,9 @@ client.on("messageCreate", async (msg) => {
         await new Promise(r => setTimeout(r, 2000));
         const winner = await game.GetYearWinnerFromArchive(msg.guild.id, year);
         if (!winner) {
-            msg.channel.send(`📭 Записей о пидоре ${year} года нет. Либо не играли, либо история не сохранилась.`);
+            await ChatFunctions.typingAndSend(msg.channel, `📭 Записей о пидоре ${year} года нет. Либо не играли, либо история не сохранилась.`);
         } else {
-            msg.channel.send(`🏆 **Пидор ${year} года** — <@${winner.discord_user_id}> с результатом **${winner.score}** пробивок. Имя вписано в историю навсегда.`);
+            await ChatFunctions.typingAndSend(msg.channel, `🏆 **Пидор ${year} года** — <@${winner.discord_user_id}> с результатом **${winner.score}** пробивок. Имя вписано в историю навсегда.`);
         }
         return;
     }
@@ -298,7 +298,7 @@ client.on("messageCreate", async (msg) => {
 
         const alreadyDone = await game.IsYearWinnerDeclared(msg.guild.id, currentYear);
         if (alreadyDone) {
-            msg.channel.send(`✅ Пидор **${currentYear}** года уже объявлен. Следующая пробивка — 31 декабря ${currentYear + 1}. Иди играй.`);
+            await ChatFunctions.typingAndSend(msg.channel, `✅ Пидор **${currentYear}** года уже объявлен. Следующая пробивка — 31 декабря ${currentYear + 1}. Иди играй.`);
             return;
         }
 
@@ -313,19 +313,19 @@ client.on("messageCreate", async (msg) => {
                 `⏳ **${daysLeft}** дней до итогов. Расслабься. Никуда твой титул не денется.`,
                 `📊 База заблокирована до 31.12.${currentYear}. Осталось **${daysLeft}** дней позора. Продолжай в том же духе.`,
             ];
-            msg.channel.send(earlyPhrases[Math.floor(Math.random() * earlyPhrases.length)]);
+            await ChatFunctions.typingAndSend(msg.channel, earlyPhrases[Math.floor(Math.random() * earlyPhrases.length)]);
             return;
         }
 
         try {
             await game.TeaseYear(msg.channel, false);
             const result = await game.GetYearWinner(msg.guild.id);
-            await msg.channel.send(result.announcement);
+            await ChatFunctions.typingAndSend(msg.channel, result.announcement, 1000);
             await new Promise(r => setTimeout(r, 2000));
-            await msg.channel.send(result.congrats);
+            await ChatFunctions.typingAndSend(msg.channel, result.congrats, 500);
             await game.SaveYearWinnerAndReset(msg.guild.id, result.userId, result.name, result.score, currentYear);
             await new Promise(r => setTimeout(r, 3000));
-            msg.channel.send(`🗓️ Статистика обнулена. Новый год — новая пробивка. Следующая церемония — 31 декабря ${currentYear + 1}.`);
+            await ChatFunctions.typingAndSend(msg.channel, `🗓️ Статистика обнулена. Новый год — новая пробивка. Следующая церемония — 31 декабря ${currentYear + 1}.`);
         } catch (err) {
             msg.channel.send(err);
         }
@@ -335,20 +335,20 @@ client.on("messageCreate", async (msg) => {
     // Сброс статистики
     if (msg.content.match(/^!сброспидоров/)) {
         if (!msg.member.permissions.has("Administrator")) {
-            msg.channel.send("Только администратор может сбрасывать статистику! 🚫");
+            await ChatFunctions.typingAndSend(msg.channel, "Только администратор может сбрасывать статистику! 🚫");
             ChatFunctions.deleteMessage(msg, 2000);
             return;
         }
-        msg.channel.send("⚠️ Ты уверен? Это сотрёт **всю** статистику! Напиши `!подтвердить` в течение 15 секунд.");
+        await ChatFunctions.typingAndSend(msg.channel, "⚠️ Ты уверен? Это сотрёт **всю** статистику! Напиши `!подтвердить` в течение 15 секунд.");
         ChatFunctions.deleteMessage(msg, 1000);
         try {
             const filter = (m) => m.author.id === msg.author.id && m.content === "!подтвердить";
             const collected = await msg.channel.awaitMessages({ filter, max: 1, time: 15000, errors: ["time"] });
             ChatFunctions.deleteMessage(collected.first(), 500);
             await game.ResetScores(msg.guild.id);
-            msg.channel.send("✅ Статистика обнулена! Новая пробивка — новые пидоры 🗑️");
+            await ChatFunctions.typingAndSend(msg.channel, "✅ Статистика обнулена! Новая пробивка — новые пидоры 🗑️");
         } catch {
-            msg.channel.send("Сброс отменён — время вышло ⏱️");
+            await ChatFunctions.typingAndSend(msg.channel, "Сброс отменён — время вышло ⏱️");
         }
         return;
     }
@@ -356,18 +356,18 @@ client.on("messageCreate", async (msg) => {
     // Исключить участника
     if (msg.content.match(/^!исключить/)) {
         if (!msg.member.permissions.has("Administrator")) {
-            msg.channel.send("Ты кто такой? Иди отсюда! 🚫");
+            await ChatFunctions.typingAndSend(msg.channel, "Ты кто такой? Иди отсюда! 🚫");
             ChatFunctions.deleteMessage(msg, 3000);
             return;
         }
         const mentioned = msg.mentions.users.first();
         if (!mentioned) {
-            msg.channel.send("Укажи пользователя через @mention");
+            await ChatFunctions.typingAndSend(msg.channel, "Укажи пользователя через @mention");
             ChatFunctions.deleteMessage(msg, 3000);
             return;
         }
         await participantsRepository.RemoveParticipant(mentioned.id, msg.guild.id);
-        msg.channel.send(`Пользователь ${mentioned.username} исключён из пробивки`);
+        await ChatFunctions.typingAndSend(msg.channel, `Пользователь ${mentioned.username} исключён из пробивки`);
         ChatFunctions.deleteMessage(msg, 3000);
         return;
     }
@@ -376,11 +376,11 @@ client.on("messageCreate", async (msg) => {
     if (msg.content.match(/^!setканал/)) {
         ChatFunctions.deleteMessage(msg, 5000);
         if (!msg.member.permissions.has("Administrator")) {
-            msg.channel.send("Только администратор может настраивать канал! 🚫");
+            await ChatFunctions.typingAndSend(msg.channel, "Только администратор может настраивать канал! 🚫");
             return;
         }
         await game.SetAutoChannel(msg.guild.id, msg.channel.id);
-        msg.channel.send(`✅ Автопробивка будет запускаться в этом канале каждый день в **23:59 UTC** если никто не запустил вручную.`);
+        await ChatFunctions.typingAndSend(msg.channel, `✅ Автопробивка будет запускаться в этом канале каждый день в **23:59 UTC** если никто не запустил вручную.`);
         return;
     }
 
@@ -388,11 +388,11 @@ client.on("messageCreate", async (msg) => {
     if (msg.content.match(/^!delканал/)) {
         ChatFunctions.deleteMessage(msg, 5000);
         if (!msg.member.permissions.has("Administrator")) {
-            msg.channel.send("Только администратор может удалять настройки! 🚫");
+            await ChatFunctions.typingAndSend(msg.channel, "Только администратор может удалять настройки! 🚫");
             return;
         }
         await game.RemoveAutoChannel(msg.guild.id);
-        msg.channel.send("✅ Автопробивка отключена. Используй `!setканал` чтобы включить снова.");
+        await ChatFunctions.typingAndSend(msg.channel, "✅ Автопробивка отключена. Используй `!setканал` чтобы включить снова.");
         return;
     }
 
@@ -400,11 +400,11 @@ client.on("messageCreate", async (msg) => {
     if (msg.content.match(/^!resetканал/)) {
         ChatFunctions.deleteMessage(msg, 5000);
         if (!msg.member.permissions.has("Administrator")) {
-            msg.channel.send("Только администратор! 🚫");
+            await ChatFunctions.typingAndSend(msg.channel, "Только администратор! 🚫");
             return;
         }
         await game.ResetAutoSettings(msg.guild.id, msg.channel.id);
-        msg.channel.send(`✅ Настройки автопробивки сброшены. Канал установлен на этот. Запуск — каждый день в **23:59 UTC**.`);
+        await ChatFunctions.typingAndSend(msg.channel, `✅ Настройки автопробивки сброшены. Канал установлен на этот. Запуск — каждый день в **23:59 UTC**.`);
         return;
     }
 
@@ -413,7 +413,7 @@ client.on("messageCreate", async (msg) => {
         ChatFunctions.deleteMessage(msg, 5000);
         const settings = await game.GetAutoSettings(msg.guild.id);
         if (!settings || !settings.auto_channel_id) {
-            msg.channel.send("⚙️ Автопробивка не настроена. Используй `!setканал` в нужном канале.");
+            await ChatFunctions.typingAndSend(msg.channel, "⚙️ Автопробивка не настроена. Используй `!setканал` в нужном канале.");
         } else {
             msg.channel.send(`⚙️ Автопробивка: канал <#${settings.auto_channel_id}>, запуск в **23:59 UTC** если никто не сыграл вручную.`);
         }
@@ -435,7 +435,7 @@ client.on("messageCreate", async (msg) => {
             "`!delканал` — отключить автопробивку (только для админов)",
             "`!autoинфо` — показать настройки автопробивки",
         ].join("\n");
-        msg.channel.send(help);
+        await ChatFunctions.typingAndSend(msg.channel, help);
         ChatFunctions.deleteMessage(msg, 5000);
         return;
     }
