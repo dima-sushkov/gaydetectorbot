@@ -244,6 +244,9 @@ client.on("messageCreate", async (msg) => {
             await game.Tease(msg.channel, false);
             const winMsg = await game.Run(msg.guild.id);
             msg.channel.send(winMsg);
+            // Проверяем стрик
+            await new Promise(r => setTimeout(r, 2000));
+            await handleStreak(msg.channel, msg.guild.id, msg.guild);
         } catch (err) {
             msg.channel.send(err);
         } finally {
@@ -438,6 +441,50 @@ client.on("messageCreate", async (msg) => {
     }
 });
 
+// Стрик-комментарии
+const streakComments2 = [
+    (name) => `😏 Кстати, ${name} уже второй день подряд. Случайность? Вряд ли.`,
+    (name) => `👀 Второй раз подряд — ${name}. Детектор не врёт.`,
+    (name) => `📊 Статистика упорно указывает на ${name} второй день подряд. Интересно.`,
+];
+const streakComments3 = [
+    (name) => `🚨 ВНИМАНИЕ! ${name} — три дня подряд! Это уже диагноз, а не случайность!`,
+    (name) => `👑 ТРИ ДНЯ ПОДРЯД! ${name} — абсолютный рекордсмен пидорства этой недели!`,
+    (name) => `🏆 ${name} — хет-трик пидорства! Три дня подряд! Поаплодируем легенде! 👏`,
+];
+
+async function handleStreak(channel, guild_id, guild) {
+    try {
+        // Получаем последние игры чтобы узнать победителя
+        const recentGames = await game.dbAdapter.all(
+            "SELECT p.discord_user_id, p.discord_user_name FROM games g JOIN participants p ON p.id = g.winner_participant_id WHERE g.discord_guild_id = ?1 ORDER BY g.datetime DESC LIMIT 5",
+            { 1: guild_id }
+        );
+        if (!recentGames || recentGames.length === 0) return;
+
+        const lastWinner = recentGames[0];
+        let streak = 0;
+        for (const g of recentGames) {
+            if (g.discord_user_id === lastWinner.discord_user_id) streak++;
+            else break;
+        }
+
+        if (streak === 2) {
+            const comment = streakComments2[Math.floor(Math.random() * streakComments2.length)];
+            channel.send(comment(lastWinner.discord_user_name));
+        } else if (streak >= 3) {
+            const comment = streakComments3[Math.floor(Math.random() * streakComments3.length)];
+            // Тегаем всех участников
+            const participants = await game.GetAllParticipants(guild_id);
+            const mentions = participants.map(p => `<@${p.discord_user_id}>`).join(" ");
+            channel.send(`${mentions}
+${comment(lastWinner.discord_user_name)}`);
+        }
+    } catch (err) {
+        console.error("[Streak]", err.message);
+    }
+}
+
 // CRON — каждую минуту проверяем время
 setInterval(async () => {
     const now = new Date();
@@ -445,6 +492,58 @@ setInterval(async () => {
     const currentDay = now.getUTCDate();
     const currentMonth = now.getUTCMonth() + 1;
     const currentYear = now.getUTCFullYear();
+
+    // Итоги недели — воскресенье 17:00 UTC (20:00 Киев)
+    if (currentTime === "17:00" && now.getUTCDay() === 0) {
+        console.log("[CRON] Запускаю итоги недели");
+        const guilds = await game.GetAllAutoSettings();
+        for (const settings of guilds) {
+            if (!settings.auto_channel_id) continue;
+            const channel = client.channels.cache.get(settings.auto_channel_id);
+            if (!channel) continue;
+
+            try {
+                const stats = await game.GetWeeklyStats(settings.discord_guild_id);
+                if (stats.totalGames === 0) continue;
+
+                // Формируем данные для AI
+                const winsText = Object.entries(stats.wins)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([name, count]) => `${name} — ${count} раз`)
+                    .join(", ");
+                const streakText = stats.streak >= 2 ? `${stats.streakName} держит стрик ${stats.streak} дней` : "стриков не было";
+                const luckyText = stats.luckyOnes.length > 0
+                    ? stats.luckyOnes.map(p => p.discord_user_name).join(", ")
+                    : "все попались хоть раз";
+
+                const weeklyPrompt = `Ты — ведущий комик-шоу "Пидоры недели" в стиле дерзкого стендапа. 
+Напиши смешной итоговый репортаж за неделю на основе этих данных:
+- Победители пробивки: ${winsText}
+- Стрики: ${streakText}  
+- Кто не попался: ${luckyText}
+- Всего пробивок за неделю: ${stats.totalGames}
+
+Пиши в стиле телевизионного шоу, дерзко, с юмором, можно материться. 3-5 предложений максимум. Обращайся к участникам по именам.`;
+
+                channel.send("🎬 **ИТОГИ НЕДЕЛИ — Пидоры недели выпуск:**");
+                await new Promise(r => setTimeout(r, 1000));
+
+                if (process.env.OPENAI_API_KEY) {
+                    const response = await openai.chat.completions.create({
+                        model: "gpt-4o-mini",
+                        messages: [{ role: "user", content: weeklyPrompt }],
+                        max_tokens: 300,
+                        temperature: 1.0,
+                    });
+                    channel.send(response.choices[0].message.content);
+                } else {
+                    channel.send(`За эту неделю было **${stats.totalGames}** пробивок. Победители: ${winsText}. ${streakText}.`);
+                }
+            } catch (err) {
+                console.error("[CRON Weekly]", err.message);
+            }
+        }
+    }
 
     // Авто пидор года — 31 декабря в 23:59 UTC
     if (currentTime === "23:59" && currentMonth === 12 && currentDay === 31) {
@@ -505,6 +604,8 @@ setInterval(async () => {
             await game.Tease(channel, true);
             const winMsg = await game.Run(guild_id);
             channel.send(winMsg);
+            await new Promise(r => setTimeout(r, 2000));
+            await handleStreak(channel, guild_id, client.guilds.cache.get(guild_id));
             console.log(`[CRON] Автопробивка запущена на сервере ${guild_id}`);
         } catch (err) {
             console.error(`[CRON] Ошибка автопробивки: ${err}`);
