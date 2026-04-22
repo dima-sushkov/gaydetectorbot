@@ -352,6 +352,63 @@ class Game {
             {}
         );
     }
+
+    // Получить текущий стрик победителя (сколько дней подряд побеждает)
+    async GetCurrentStreak(guild_id, user_id) {
+        const games = await this.dbAdapter.all(
+            "SELECT p.discord_user_id FROM games g JOIN participants p ON p.id = g.winner_participant_id WHERE g.discord_guild_id = ?1 ORDER BY g.datetime DESC LIMIT 10",
+            { 1: guild_id }
+        );
+        let streak = 0;
+        for (const g of games) {
+            if (g.discord_user_id === user_id) streak++;
+            else break;
+        }
+        return streak;
+    }
+
+    // Получить всех участников для тега
+    async GetAllParticipants(guild_id) {
+        return this.dbAdapter.all(
+            "SELECT discord_user_id, discord_user_name FROM participants WHERE discord_guild_id = ?1 AND excluded = 0",
+            { 1: guild_id }
+        );
+    }
+
+    // Получить статистику за последние 7 дней для итогов недели
+    async GetWeeklyStats(guild_id) {
+        const weekAgo = Math.floor(Date.now() / 1000) - 7 * 86400;
+        const games = await this.dbAdapter.all(
+            "SELECT p.discord_user_id, p.discord_user_name FROM games g JOIN participants p ON p.id = g.winner_participant_id WHERE g.discord_guild_id = ?1 AND g.datetime > ?2 ORDER BY g.datetime ASC",
+            { 1: guild_id, 2: weekAgo }
+        );
+
+        // Считаем победы за неделю
+        const wins = {};
+        for (const g of games) {
+            wins[g.discord_user_name] = (wins[g.discord_user_name] || 0) + 1;
+        }
+
+        // Текущий стрик
+        let streak = 0;
+        let streakName = null;
+        const recentGames = await this.dbAdapter.all(
+            "SELECT p.discord_user_id, p.discord_user_name FROM games g JOIN participants p ON p.id = g.winner_participant_id WHERE g.discord_guild_id = ?1 ORDER BY g.datetime DESC LIMIT 7",
+            { 1: guild_id }
+        );
+        for (const g of recentGames) {
+            if (!streakName) streakName = g.discord_user_name;
+            if (g.discord_user_name === streakName) streak++;
+            else break;
+        }
+
+        // Кто ни разу не попался за неделю
+        const allParticipants = await this.GetAllParticipants(guild_id);
+        const winnersThisWeek = new Set(games.map(g => g.discord_user_name));
+        const luckyOnes = allParticipants.filter(p => !winnersThisWeek.has(p.discord_user_name));
+
+        return { wins, streak, streakName, luckyOnes, totalGames: games.length };
+    }
 }
 
 module.exports = Game;
