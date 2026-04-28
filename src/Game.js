@@ -277,6 +277,17 @@ class Game {
         });
     }
 
+    async ResetScores(guild_id) {
+        await this.dbAdapter.run(
+            "UPDATE participants SET score = 0 WHERE discord_guild_id = ?1",
+            { 1: guild_id }
+        );
+        await this.dbAdapter.run(
+            "DELETE FROM games WHERE discord_guild_id = ?1",
+            { 1: guild_id }
+        );
+    }
+
     async SaveYearWinnerAndReset(guild_id, user_id, user_name, score, year) {
         this.dbAdapter.run(
             "INSERT INTO year_winners (discord_guild_id, discord_user_id, discord_user_name, year, score, datetime) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
