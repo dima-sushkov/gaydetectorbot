@@ -1,59 +1,43 @@
 require("dotenv").config();
-const { Pool } = require("pg");
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+const dbPath = process.env.DB_PATH || path.join(__dirname, "database.db3");
+const db = new sqlite3.Database(dbPath);
+
+db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS participants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        discord_guild_id TEXT,
+        discord_user_id TEXT,
+        discord_user_name TEXT,
+        score INTEGER DEFAULT 0,
+        excluded INTEGER DEFAULT 0
+    )`, (err) => { if (err) console.error(err); else console.log("✅ participants"); });
+
+    db.run(`CREATE TABLE IF NOT EXISTS games (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        discord_guild_id TEXT,
+        winner_participant_id INTEGER,
+        datetime INTEGER
+    )`, (err) => { if (err) console.error(err); else console.log("✅ games"); });
+
+    db.run(`CREATE TABLE IF NOT EXISTS year_winners (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        discord_guild_id TEXT,
+        discord_user_id TEXT,
+        discord_user_name TEXT,
+        year INTEGER,
+        score INTEGER,
+        datetime INTEGER
+    )`, (err) => { if (err) console.error(err); else console.log("✅ year_winners"); });
+
+    db.run(`CREATE TABLE IF NOT EXISTS guild_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        discord_guild_id TEXT UNIQUE,
+        auto_channel_id TEXT,
+        auto_time TEXT DEFAULT '23:59'
+    )`, (err) => { if (err) console.error(err); else console.log("✅ guild_settings"); });
 });
 
-async function init() {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS participants (
-            id SERIAL PRIMARY KEY,
-            discord_guild_id TEXT,
-            discord_user_id TEXT,
-            discord_user_name TEXT,
-            score INTEGER DEFAULT 0,
-            excluded INTEGER DEFAULT 0
-        )
-    `);
-    console.log("✅ Таблица participants создана");
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS games (
-            id SERIAL PRIMARY KEY,
-            discord_guild_id TEXT,
-            winner_participant_id INTEGER,
-            datetime INTEGER
-        )
-    `);
-    console.log("✅ Таблица games создана");
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS year_winners (
-            id SERIAL PRIMARY KEY,
-            discord_guild_id TEXT,
-            discord_user_id TEXT,
-            discord_user_name TEXT,
-            year INTEGER,
-            score INTEGER,
-            datetime INTEGER
-        )
-    `);
-    console.log("✅ Таблица year_winners создана");
-
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS guild_settings (
-            id SERIAL PRIMARY KEY,
-            discord_guild_id TEXT UNIQUE,
-            auto_channel_id TEXT,
-            auto_time TEXT DEFAULT '09:00'
-        )
-    `);
-    console.log("✅ Таблица guild_settings создана");
-
-    await pool.end();
-    console.log("✅ База данных готова!");
-}
-
-init().catch(console.error);
+db.close(() => console.log("✅ База данных готова!"));
