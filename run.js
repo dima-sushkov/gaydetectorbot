@@ -618,7 +618,7 @@ setInterval(async () => {
     }
 
     // Авто пидор года — 31 декабря в 23:59 UTC
-    if (currentTime === "23:59" && currentMonth === 12 && currentDay === 31) {
+    if (currentTime === "20:59" && currentMonth === 12 && currentDay === 31) {
         console.log("[CRON] Запускаю автопидора года");
         const guilds = await game.GetAllAutoSettings();
         for (const settings of guilds) {
@@ -645,9 +645,9 @@ setInterval(async () => {
     }
 
     // Авто пробивка — 23:59 UTC каждый день
-    if (currentTime !== "23:59") return;
+    if (currentTime !== "20:59") return;
 
-    console.log("[CRON] Проверка автопробивки 23:59 UTC");
+    console.log("[CRON] Проверка автопробивки 20:59 UTC (23:59 Киев)");
     const guilds = await game.GetAllAutoSettings();
     console.log(`[CRON] Серверов с автопробивкой: ${guilds.length}`);
 
