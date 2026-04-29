@@ -384,6 +384,19 @@ client.on("messageCreate", async (msg) => {
         return;
     }
 
+    // Сброс онбординга для теста (только для админов)
+    if (msg.content.match(/^!сбросонбординг/)) {
+        ChatFunctions.deleteMessage(msg, 1000);
+        if (!msg.member.permissions.has("Administrator")) {
+            await ChatFunctions.typingAndSend(msg.channel, "Только администратор.");
+            return;
+        }
+        await game.RemoveAutoChannel(msg.guild.id);
+        onboardedGuilds.delete(msg.guild.id);
+        await ChatFunctions.typingAndSend(msg.channel, "Онбординг сброшен. Напиши !пидордня или тегни бота — покажу всё заново.");
+        return;
+    }
+
     // Установить канал для авторулетки
     if (msg.content.match(/^!setканал/)) {
         ChatFunctions.deleteMessage(msg, 5000);
