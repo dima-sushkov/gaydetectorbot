@@ -343,9 +343,8 @@ class Game {
     }
 
     async ResetAutoSettings(guild_id, channel_id) {
-        this.dbAdapter.run("DELETE FROM guild_settings WHERE discord_guild_id = ?1", { 1: guild_id });
-        this.dbAdapter.run(
-            "INSERT INTO guild_settings (discord_guild_id, auto_channel_id, auto_time) VALUES (?1, ?2, '23:59')",
+        await this.dbAdapter.run(
+            "INSERT INTO guild_settings (discord_guild_id, auto_channel_id, auto_time) VALUES (?1, ?2, '23:59') ON CONFLICT (discord_guild_id) DO UPDATE SET auto_channel_id = ?2, auto_time = '23:59'",
             { 1: guild_id, 2: channel_id }
         );
     }
