@@ -393,7 +393,7 @@ client.on("messageCreate", async (msg) => {
             return;
         }
         await game.SetAutoChannel(msg.guild.id, msg.channel.id);
-        await ChatFunctions.typingAndSend(msg.channel, `✅ Автопробивка будет запускаться в этом канале каждый день в **23:59 UTC** если никто не запустил вручную.`);
+        await ChatFunctions.typingAndSend(msg.channel, `Канал установлен. Буду писать сюда каждый день в **23:59 по Киеву** если никто не запустил вручную.`);
         return;
     }
 
@@ -417,7 +417,7 @@ client.on("messageCreate", async (msg) => {
             return;
         }
         await game.ResetAutoSettings(msg.guild.id, msg.channel.id);
-        await ChatFunctions.typingAndSend(msg.channel, `✅ Настройки автопробивки сброшены. Канал установлен на этот. Запуск — каждый день в **23:59 UTC**.`);
+        await ChatFunctions.typingAndSend(msg.channel, `Настройки сброшены. Канал установлен. Запуск — каждый день в **23:59 по Киеву**.`);
         return;
     }
 
@@ -428,7 +428,7 @@ client.on("messageCreate", async (msg) => {
         if (!settings || !settings.auto_channel_id) {
             await ChatFunctions.typingAndSend(msg.channel, "⚙️ Автопробивка не настроена. Используй `!setканал` в нужном канале.");
         } else {
-            msg.channel.send(`⚙️ Автопробивка: канал <#${settings.auto_channel_id}>, запуск в **23:59 UTC** если никто не сыграл вручную.`);
+            msg.channel.send(`Автопробивка: канал <#${settings.auto_channel_id}>, запуск в **23:59 по Киеву** если никто не сыграл вручную.`);
         }
         return;
     }
