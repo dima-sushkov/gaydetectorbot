@@ -84,7 +84,8 @@ client.on("messageCreate", async (msg) => {
 
     // Онбординг — при любом первом обращении к боту
     if (msg.mentions.users.has(client.user.id) || msg.content.match(/^!(пидордня|пидорня|ктопидор|топпидоров|пидорхелп)/)) {
-        await runOnboarding(msg.channel, msg.guild.id);
+        const onboardingShown = await runOnboarding(msg.channel, msg.guild.id);
+        if (onboardingShown) return; // если показали онбординг — не отвечаем дополнительно
     }
 
     // Ответ на тег бота через OpenAI с function calling
@@ -384,19 +385,6 @@ client.on("messageCreate", async (msg) => {
         return;
     }
 
-    // Сброс онбординга для теста (только для админов)
-    if (msg.content.match(/^!сбросонбординг/)) {
-        ChatFunctions.deleteMessage(msg, 1000);
-        if (!msg.member.permissions.has("Administrator")) {
-            await ChatFunctions.typingAndSend(msg.channel, "Только администратор.");
-            return;
-        }
-        await game.RemoveAutoChannel(msg.guild.id);
-        onboardedGuilds.delete(msg.guild.id);
-        await ChatFunctions.typingAndSend(msg.channel, "Онбординг сброшен. Напиши !пидордня или тегни бота — покажу всё заново.");
-        return;
-    }
-
     // Установить канал для авторулетки
     if (msg.content.match(/^!setканал/)) {
         ChatFunctions.deleteMessage(msg, 5000);
@@ -483,6 +471,7 @@ async function runOnboarding(channel, guild_id) {
     onboardedGuilds.add(guild_id);
 
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    let _onboardingStarted = true;
 
     // Шаг 1 — Приветствие
     await sleep(1000);
@@ -524,6 +513,7 @@ async function runOnboarding(channel, guild_id) {
     await channel.sendTyping();
     await sleep(1500);
     await channel.send("Вот и всё. Как настроишь канал и зарегистрируются участники — я начну работать в полную силу. Если что-то непонятно — тегни меня, отвечу. Ну или напиши `!пидорхелп`. Удачи, пидоры 😏");
+    return true;
 }
 
 // Стрик-комментарии
