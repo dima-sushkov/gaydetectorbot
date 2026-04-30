@@ -518,14 +518,14 @@ async function runOnboarding(channel, guild_id) {
 
 // Стрик-комментарии
 const streakComments2 = [
-    (name) => `Кстати, ${name} уже второй день подряд. Случайность? Вряд ли.`,
-    (name) => `Второй раз подряд — ${name}. Детектор не врёт.`,
-    (name) => `Статистика упорно указывает на ${name} второй день подряд. Интересно.`,
+    (mention) => `Кстати, ${mention} второй день подряд. Ясно.`,
+    (mention) => `${mention} снова. Классика этого человека.`,
+    (mention) => `Мда. ${mention} опять. Ожидаемо.`,
 ];
 const streakComments3 = [
-    (name) => `ВНИМАНИЕ! ${name} — три дня подряд! Это уже диагноз, а не случайность!`,
-    (name) => `ТРИ ДНЯ ПОДРЯД! ${name} — абсолютный рекордсмен пидорства этой недели!`,
-    (name) => `${name} — хет-трик пидорства! Три дня подряд! Поаплодируем легенде! 👏`,
+    (mention) => `ПАЦАНЫ. ${mention} — три дня подряд. Это уже диагноз.`,
+    (mention) => `${mention} — хет-трик. Наш мальчик. Поаплодируем.`,
+    (mention) => `НУ ПЕТУХ ДА ПАЦАНЫ? ${mention} три дня подряд. Грамотно.`,
 ];
 
 async function handleStreak(channel, guild_id, guild) {
@@ -546,14 +546,13 @@ async function handleStreak(channel, guild_id, guild) {
 
         if (streak === 2) {
             const comment = streakComments2[Math.floor(Math.random() * streakComments2.length)];
-            channel.send(comment(lastWinner.discord_user_name));
+            channel.send(comment(`<@${lastWinner.discord_user_id}>`));
         } else if (streak >= 3) {
             const comment = streakComments3[Math.floor(Math.random() * streakComments3.length)];
             // Тегаем всех участников
             const participants = await game.GetAllParticipants(guild_id);
             const mentions = participants.map(p => `<@${p.discord_user_id}>`).join(" ");
-            channel.send(`${mentions}
-${comment(lastWinner.discord_user_name)}`);
+            channel.send(`${mentions}\n${comment(`<@${lastWinner.discord_user_id}>`)}`);
         }
     } catch (err) {
         console.error("[Streak]", err.message);
