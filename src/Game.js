@@ -185,21 +185,23 @@ class Game {
     async Tease(channel, auto = false) {
         const phrases = Misc.GetRandomElement(auto ? autoTeasePhrases : teasePhrases);
         await Misc.AsyncForEach(phrases, async (p) => {
-            await Misc.Sleep(2500 + Math.random() * 5500).then(() => {
-                channel.send(p);
-            });
+            await Misc.Sleep(1500 + Math.random() * 2000);
+            await channel.sendTyping();
+            await Misc.Sleep(800 + Math.random() * 1200);
+            channel.send(p);
         });
-        await Misc.Sleep(3500 + Math.random() * 2500);
+        await Misc.Sleep(2000 + Math.random() * 2000);
     }
 
     async TeaseYear(channel, auto = false) {
         const phrases = Misc.GetRandomElement(auto ? autoYearTeasePhrases : yearTeasePhrases);
         await Misc.AsyncForEach(phrases, async (p) => {
-            await Misc.Sleep(2000 + Math.random() * 4000).then(() => {
-                channel.send(p);
-            });
+            await Misc.Sleep(1500 + Math.random() * 2000);
+            await channel.sendTyping();
+            await Misc.Sleep(800 + Math.random() * 1200);
+            channel.send(p);
         });
-        await Misc.Sleep(2500 + Math.random() * 2000);
+        await Misc.Sleep(2000 + Math.random() * 1500);
     }
 
     GetMentionReply() {
