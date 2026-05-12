@@ -241,6 +241,19 @@ client.on("messageCreate", async (msg) => {
         return;
     }
 
+    // Список участников
+    if (msg.content.match(/^!участники/)) {
+        ChatFunctions.deleteMessage(msg, 5000);
+        const participants = await game.GetAllParticipants(msg.guild.id);
+        if (!participants || participants.length === 0) {
+            await ChatFunctions.typingAndSend(msg.channel, "Никого нет. Напиши !пидордня чтобы зарегистрироваться.");
+            return;
+        }
+        const list = participants.map((p, i) => `${i + 1}. ${p.discord_user_name}`).join("\n");
+        await ChatFunctions.typingAndSend(msg.channel, `**Участники (${participants.length}):**\n${list}`);
+        return;
+    }
+
     // Статистика
     if (msg.content.match(/^!топпидоров/)) {
         const message = await game.GetStats(msg.guild.id);
