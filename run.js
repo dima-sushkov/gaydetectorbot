@@ -94,6 +94,25 @@ client.on("messageCreate", async (msg) => {
             return;
         }
 
+        // Получаем контекст последней игры
+        const lastGame = await gamesRepository.GetLastGame(msg.guild.id);
+        let gameContext = "Сегодня пробивка ещё не проводилась.";
+        if (lastGame) {
+            const lastTime = lastGame.datetime * 1000;
+            const now = Date.now();
+            const diffMs = now - lastTime;
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffMins = Math.floor((diffMs % 3600000) / 60000);
+            const nextAvailableMs = lastTime + 86400000 - now;
+            const nextHours = Math.floor(nextAvailableMs / 3600000);
+            const nextMins = Math.floor((nextAvailableMs % 3600000) / 60000);
+            if (diffMs < 86400000) {
+                gameContext = `Последняя пробивка была ${diffHours}ч ${diffMins}мин назад, победитель — ${lastGame.discord_user_name}. До следующей пробивки осталось ${nextHours}ч ${nextMins}мин.`;
+            } else {
+                gameContext = `Последняя пробивка была более суток назад. Пробивку можно запустить прямо сейчас.`;
+            }
+        }
+
         const historyKey = `${msg.guild.id}_${msg.author.id}`;
         if (!conversationHistory.has(historyKey)) conversationHistory.set(historyKey, []);
         const history = conversationHistory.get(historyKey);
@@ -136,7 +155,7 @@ client.on("messageCreate", async (msg) => {
             await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
             const response = await openai.chat.completions.create({
                 model: "llama-3.3-70b-versatile",
-                messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
+                messages: [{ role: "system", content: SYSTEM_PROMPT + `\n\nТЕКУЩИЙ КОНТЕКСТ ИГРЫ: ${gameContext}` }, ...history],
                 tools,
                 tool_choice: "auto",
                 max_tokens: 200,
