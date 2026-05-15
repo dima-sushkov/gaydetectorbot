@@ -40,6 +40,13 @@ class ParticipantsRepository {
             1: participant_id,
         });
     }
+
+    GetParticipantByName(guild_id, name) {
+        return this.dbAdapter.get(
+            "SELECT discord_user_id, discord_user_name FROM participants WHERE discord_guild_id = ?1 AND discord_user_name = ?2 LIMIT 1",
+            { 1: guild_id, 2: name }
+        );
+    }
 }
 
 module.exports = ParticipantsRepository;
