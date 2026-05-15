@@ -106,8 +106,11 @@ client.on("messageCreate", async (msg) => {
             const nextAvailableMs = lastTime + 86400000 - now;
             const nextHours = Math.floor(nextAvailableMs / 3600000);
             const nextMins = Math.floor((nextAvailableMs % 3600000) / 60000);
+            // Находим discord_user_id победителя для тега
+            const winner = await participantsRepository.GetParticipantByName(msg.guild.id, lastGame.discord_user_name);
+            const winnerMention = winner ? `<@${winner.discord_user_id}> (${lastGame.discord_user_name})` : lastGame.discord_user_name;
             if (diffMs < 86400000) {
-                gameContext = `Последняя пробивка была ${diffHours}ч ${diffMins}мин назад, победитель — ${lastGame.discord_user_name}. До следующей пробивки осталось ${nextHours}ч ${nextMins}мин.`;
+                gameContext = `Последняя пробивка была ${diffHours}ч ${diffMins}мин назад, победитель — ${winnerMention}. До следующей пробивки осталось ${nextHours}ч ${nextMins}мин.`;
             } else {
                 gameContext = `Последняя пробивка была более суток назад. Пробивку можно запустить прямо сейчас.`;
             }
