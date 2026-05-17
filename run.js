@@ -148,7 +148,7 @@ client.on("messageCreate", async (msg) => {
             // Ещё немного "печатает"
             await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
             const response = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: "gpt-4o",
                 messages: [{ role: "system", content: SYSTEM_PROMPT + `\n\nТЕКУЩИЙ КОНТЕКСТ ИГРЫ: ${gameContext}` }, ...history],
                 tools,
                 tool_choice: "auto",
@@ -648,7 +648,7 @@ setInterval(async () => {
 
                 if (process.env.GROQ_API_KEY) {
                     const response = await openai.chat.completions.create({
-                        model: "gpt-4o-mini",
+                        model: "gpt-4o",
                         messages: [{ role: "user", content: weeklyPrompt }],
                         max_tokens: 300,
                         temperature: 1.0,
