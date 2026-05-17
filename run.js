@@ -80,7 +80,7 @@ client.on("messageCreate", async (msg) => {
         await msg.channel.messages.fetch(msg.reference.messageId).then(m => m.author.id === client.user.id).catch(() => false);
     
     if ((msg.mentions.users.has(client.user.id) || isReplyToBot) && !msg.content.startsWith("!")) {
-        if (!process.env.GROQ_API_KEY) {
+        if (!process.env.OPENAI_API_KEY) {
             await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
             return;
         }
