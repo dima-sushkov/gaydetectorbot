@@ -72,8 +72,11 @@ client.on("messageCreate", async (msg) => {
         if (onboardingShown) return; // если показали онбординг — не отвечаем дополнительно
     }
 
-    // Ответ на тег бота через OpenAI с function calling
-    if (msg.mentions.users.has(client.user.id) && !msg.content.startsWith("!")) {
+    // Ответ на тег бота ИЛИ ответ на сообщение бота
+    const isReplyToBot = msg.reference && msg.reference.messageId && 
+        await msg.channel.messages.fetch(msg.reference.messageId).then(m => m.author.id === client.user.id).catch(() => false);
+    
+    if ((msg.mentions.users.has(client.user.id) || isReplyToBot) && !msg.content.startsWith("!")) {
         if (!process.env.GROQ_API_KEY) {
             await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
             return;
