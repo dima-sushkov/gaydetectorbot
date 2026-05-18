@@ -155,7 +155,7 @@ client.on("messageCreate", async (msg) => {
             await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
             const response = await openai.chat.completions.create({
                 model: "gpt-4o",
-                messages: [{ role: "system", content: SYSTEM_PROMPT + `\n\nТЕКУЩИЙ КОНТЕКСТ ИГРЫ: ${gameContext}` }, ...history],
+                messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "system", content: `Контекст: ${gameContext}` }, ...history],
                 tools,
                 tool_choice: "auto",
                 max_tokens: 200,
@@ -179,7 +179,13 @@ client.on("messageCreate", async (msg) => {
                     try {
                         await game.CanStartGame(msg.guild.id);
                     } catch (alreadyWinner) {
-                        await ChatFunctions.typingAndSend(msg.channel, `Уже крутили сегодня — пидор **${alreadyWinner}**. Завтра ещё раз 😏`);
+                        const alreadyPhrases = [
+                            `Уже крутили. Пидор дня — **${alreadyWinner}**. Всё на сегодня.`,
+                            `**${alreadyWinner}** уже получил титул. Следующая пробивка завтра.`,
+                            `Сегодня пидор уже найден — **${alreadyWinner}**. Спи спокойно.`,
+                            `Пробивка была. Пидор — **${alreadyWinner}**. Претензии завтра.`,
+                        ];
+                        await ChatFunctions.typingAndSend(msg.channel, alreadyPhrases[Math.floor(Math.random() * alreadyPhrases.length)]);
                         return;
                     }
                     if (activeGames.has(msg.guild.id)) {
