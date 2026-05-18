@@ -179,11 +179,22 @@ client.on("messageCreate", async (msg) => {
                     try {
                         await game.CanStartGame(msg.guild.id);
                     } catch (alreadyWinner) {
+                        const lastGame = await gamesRepository.GetLastGame(msg.guild.id);
+                        let timeLeft = "";
+                        if (lastGame) {
+                            const nextTime = lastGame.datetime * 1000 + 86400000;
+                            const diffMs = nextTime - Date.now();
+                            if (diffMs > 0) {
+                                const h = Math.floor(diffMs / 3600000);
+                                const m = Math.floor((diffMs % 3600000) / 60000);
+                                timeLeft = h > 0 ? ` Следующая через ${h}ч ${m}мин.` : ` Следующая через ${m}мин.`;
+                            }
+                        }
                         const alreadyPhrases = [
-                            `Уже крутили. Пидор дня — **${alreadyWinner}**. Всё на сегодня.`,
-                            `**${alreadyWinner}** уже получил титул. Следующая пробивка завтра.`,
-                            `Сегодня пидор уже найден — **${alreadyWinner}**. Спи спокойно.`,
-                            `Пробивка была. Пидор — **${alreadyWinner}**. Претензии завтра.`,
+                            `Уже крутили. Пидор дня — **${alreadyWinner}**.${timeLeft}`,
+                            `**${alreadyWinner}** уже получил титул сегодня.${timeLeft}`,
+                            `Пробивка была. Пидор — **${alreadyWinner}**.${timeLeft}`,
+                            `Сегодня пидор найден — **${alreadyWinner}**.${timeLeft}`,
                         ];
                         await ChatFunctions.typingAndSend(msg.channel, alreadyPhrases[Math.floor(Math.random() * alreadyPhrases.length)]);
                         return;
