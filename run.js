@@ -81,13 +81,19 @@ client.on("messageCreate", async (msg) => {
     
     if ((msg.mentions.users.has(client.user.id) || isReplyToBot) && !msg.content.startsWith("!")) {
         if (!process.env.OPENAI_API_KEY) {
-            await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
+            await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+            await msg.channel.sendTyping();
+            await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+            await msg.reply(game.GetMentionReply());
             return;
         }
 
         const userText = msg.content.replace(/<@!?\d+>/g, "").trim();
         if (!userText) {
-            await ChatFunctions.typingAndSend(msg.channel, game.GetMentionReply());
+            await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+            await msg.channel.sendTyping();
+            await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+            await msg.reply(game.GetMentionReply());
             return;
         }
 
