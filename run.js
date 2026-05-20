@@ -519,7 +519,6 @@ async function runOnboarding(channel, guild_id) {
     onboardedGuilds.add(guild_id);
 
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-    let _onboardingStarted = true;
 
     // Шаг 1 — Приветствие
     await sleep(1000);
@@ -642,7 +641,6 @@ setInterval(async () => {
 
     // Итоги недели — воскресенье 17:00 UTC (20:00 Киев)
     if (currentTime === "17:00" && now.getUTCDay() === 0) {
-        console.log("[CRON] Запускаю итоги недели");
         const guilds = await game.GetAllAutoSettings();
         for (const settings of guilds) {
             if (!settings.auto_channel_id) continue;
@@ -675,7 +673,7 @@ setInterval(async () => {
                 channel.send("**ИТОГИ НЕДЕЛИ — Пидоры недели выпуск:**");
                 await new Promise(r => setTimeout(r, 1000));
 
-                if (process.env.GROQ_API_KEY) {
+                if (process.env.OPENAI_API_KEY) {
                     const response = await openai.chat.completions.create({
                         model: "gpt-4o",
                         messages: [{ role: "user", content: weeklyPrompt }],
@@ -694,7 +692,6 @@ setInterval(async () => {
 
     // Авто пидор года — 31 декабря в 23:59 UTC
     if (currentTime === "20:59" && currentMonth === 12 && currentDay === 31) {
-        console.log("[CRON] Запускаю автопидора года");
         const guilds = await game.GetAllAutoSettings();
         for (const settings of guilds) {
             if (!settings.auto_channel_id) continue;
@@ -722,9 +719,7 @@ setInterval(async () => {
     // Авто пробивка — 23:59 UTC каждый день
     if (currentTime !== "20:59") return;
 
-    console.log("[CRON] Проверка автопробивки 20:59 UTC (23:59 Киев)");
     const guilds = await game.GetAllAutoSettings();
-    console.log(`[CRON] Серверов с автопробивкой: ${guilds.length}`);
 
     for (const settings of guilds) {
         if (!settings.auto_channel_id) continue;
@@ -734,14 +729,12 @@ setInterval(async () => {
 
         const participant = await participantsRepository.GetRandomParticipant(guild_id);
         if (!participant) {
-            console.log(`[CRON] Нет участников на сервере ${guild_id}`);
             continue;
         }
 
         try {
             await game.CanStartGame(guild_id);
         } catch {
-            console.log(`[CRON] На сервере ${guild_id} уже играли сегодня`);
             continue;
         }
 
@@ -753,7 +746,6 @@ setInterval(async () => {
             channel.send(winMsg);
             await new Promise(r => setTimeout(r, 2000));
             await handleStreak(channel, guild_id, client.guilds.cache.get(guild_id));
-            console.log(`[CRON] Автопробивка запущена на сервере ${guild_id}`);
         } catch (err) {
             console.error(`[CRON] Ошибка автопробивки: ${err}`);
         } finally {
