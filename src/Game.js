@@ -356,13 +356,6 @@ class Game {
         );
     }
 
-    async GetAllAutoSettingsDebug() {
-        return this.dbAdapter.all(
-            "SELECT discord_guild_id, auto_channel_id, auto_time FROM guild_settings",
-            {}
-        );
-    }
-
     // Получить текущий стрик победителя (сколько дней подряд побеждает)
     async GetCurrentStreak(guild_id, user_id) {
         const games = await this.dbAdapter.all(
