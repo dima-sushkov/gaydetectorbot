@@ -1,78 +1,5 @@
 const Misc = require("./Misc");
 
-// ===== ФРАЗЫ ДЛЯ РУЧНОГО ЗАПУСКА =====
-const teasePhrases = [
-    [
-        "Тут кста тобой интересуются.",
-        "Серьёзные люди, между прочим.",
-        "Ну пацаны, смотрим кто это:",
-    ],
-    [
-        "Слышь мальчик, выйди на минуту.",
-        "Да не бойся, просто поговорить.",
-        "Лох обыкновенный, 1шт.:",
-    ],
-    [
-        "Выехал.",
-        "Еду по адресу. Пробки небольшие.",
-        "Приехал. Вот он:",
-    ],
-    [
-        "Так не интересно? Сейчас будет интересно.",
-        "Открываю конверт.",
-        "А ну все тогда, пидор дня:",
-    ],
-    [
-        "Чья очередь? Сейчас узнаем.",
-        "Прокручиваю базу... есть один кандидат.",
-        "Та ты уже прокрученный, это:",
-    ],
-    [
-        "Бля та за шо так.",
-        "Ну не я же виноват, система выбрала.",
-        "Наш мальчик:",
-    ],
-    [
-        "Погнали пацаны, смотрим.",
-        "Кто там засухарился, щас проверим.",
-        "Фух, ну слава богу это не про меня. Хотя... это про:",
-    ],
-    [
-        '"Миндич" тут?',
-        '"Арахамия" тут?',
-        "Товарищ офицер, @pr0blems с вашего разрешения позвольте объявить пидора дня:",
-    ],
-];
-
-// ===== ФРАЗЫ ДЛЯ АВТОРАПУСКА В 23:59 =====
-const autoTeasePhrases = [
-    [
-        "Целый день молчали.",
-        "Ну ладно, раз сами не можете — сделаю за вас.",
-        "Ясно кто тут главный лох:",
-    ],
-    [
-        "Пацаны не запустили. Ну и хуй с вами.",
-        "Сижу, жду. Никого. Ладно.",
-        "Делаю сам. Получайте:",
-    ],
-    [
-        "23:59. Тишина.",
-        "Никто не дёрнулся. Грамотно, молодцы.",
-        "Выезжаю на место. Классика этого сервера:",
-    ],
-    [
-        "А могли сами. Но нет.",
-        "Ладно, не обижаюсь. Просто запомню.",
-        "Ищу пидора. Долго искать не придётся:",
-    ],
-    [
-        "Woob-woob.",
-        "Сами напросились — машины выехали без команды.",
-        "Наш мальчик сегодня вот этот:",
-    ],
-];;
-
 const resultPhrases = [
     "Ну ты и пидор, ",
     "Вот ты и пидор, ",
@@ -182,15 +109,46 @@ class Game {
         });
     }
 
-    async Tease(channel, auto = false) {
-        const phrases = Misc.GetRandomElement(auto ? autoTeasePhrases : teasePhrases);
-        await Misc.AsyncForEach(phrases, async (p) => {
+    async Tease(channel, auto = false, openai = null) {
+        if (openai) {
+            try {
+                const prompt = auto ? global.TEASE_PROMPT_AUTO : global.TEASE_PROMPT;
+                const response = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: [{ role: "user", content: prompt }],
+                    max_tokens: 200,
+                    temperature: 1.1,
+                });
+                const text = response.choices[0].message.content.trim();
+                const phrases = text.split("\n").filter(p => p.trim());
+                for (const p of phrases) {
+                    await Misc.Sleep(1500 + Math.random() * 2000);
+                    await channel.sendTyping();
+                    await Misc.Sleep(800 + Math.random() * 1200);
+                    channel.send(p.trim());
+                }
+                await Misc.Sleep(2000 + Math.random() * 1500);
+                return;
+            } catch (err) {
+                console.error("[Tease AI]", err.message);
+            }
+        }
+        // Fallback статичные фразы
+        const fallback = auto ? [
+            ["Целый день молчали. Делаю сам.", "Пробивка пошла.", "Получайте:"],
+            ["23:59. Никто. Выезжаю.", "Классика.", "Ищу пидора:"],
+        ] : [
+            ["Дядь, тут интересуются.", "Серьёзные люди.", "Ну пацаны, смотрим:"],
+            ["Выехал.", "Еду по адресу.", "Приехал. Вот он:"],
+        ];
+        const phrases = Misc.GetRandomElement(fallback);
+        for (const p of phrases) {
             await Misc.Sleep(1500 + Math.random() * 2000);
             await channel.sendTyping();
             await Misc.Sleep(800 + Math.random() * 1200);
             channel.send(p);
-        });
-        await Misc.Sleep(2000 + Math.random() * 2000);
+        }
+        await Misc.Sleep(2000 + Math.random() * 1500);
     }
 
     async TeaseYear(channel, auto = false) {
